@@ -38,16 +38,13 @@ impl Pool {
             reserve0: 0,
             reserve1: 0,
             min_liquidity: (10 as u128).pow(3),
-            
             token: mintable_fungible_token::MintableFungibleToken::new(),
-            // total_supply: 0,
-            // balances: UnorderedMap::new(b"test".to_vec())
         }
     }
 
     fn update(&mut self, new_balance0: u128, new_balance1: u128) {
-        self.reserve0 += new_balance0;
-        self.reserve1 += new_balance1;
+        self.reserve0 = new_balance0;
+        self.reserve1 = new_balance1;
     }
 
     pub fn add_liquidity(&mut self, amount0: U128, amount1: U128) {
@@ -56,10 +53,11 @@ impl Pool {
         let amount1: u128 = amount1.into();
 
         // TODO: transfer tokens to this contract
+        assert!((amount0 * amount1).sqrt() > self.min_liquidity);
 
         if self.token.total_supply == 0 {
             liquidity = (amount0 * amount1).sqrt() - self.min_liquidity;
-            self.token.mint(&"NULL_ADDRESS".to_string(), self.min_liquidity);
+            self.token.mint(&("null_address.near".to_string()), self.min_liquidity);
         } else {
             liquidity = cmp::min(
                 amount0 * self.token.total_supply / self.reserve0, 
@@ -97,10 +95,13 @@ impl Pool {
         let r1 = self.reserve1;
         let k = r0 * r1;
 
+        let cost_numerator = r0 * amount_out * 1000;
+        let cost_denom = (r1 - amount_out) * 997;
+        let cost = cost_numerator / cost_denom + 1;
+        let new_r0 = r0 + cost;
         let new_r1 = r1 - amount_out;
-        let new_r0 = k / new_r1;
 
-        let cost = new_r0 - r0;
+        println!("cost: {} new_r1 {} new_r2 {} old_k: {} new_k {} ", cost, new_r0, new_r1, k, new_r0 * new_r1);
 
         // TODO: transfer cost of r0 to contract
         // TODO: transfer amount_out to sender
@@ -117,15 +118,21 @@ impl Pool {
         let r1 = self.reserve1;
         let k = r0 * r1;
 
+        let cost_numerator = r1 * amount_out * 1000;
+        let cost_denom = (r0 - amount_out) * 997;
+        let cost = cost_numerator / cost_denom + 1;
         let new_r0 = r0 - amount_out;
-        let new_r1 = k / new_r0;
+        let new_r1 = r1 + cost; 
 
-        let cost = new_r1 - r1;
-
+        println!("cost: {} new_r1 {} new_r2 {} old_k: {} new_k {} ", cost, new_r0, new_r1, k, new_r0 * new_r1);
         // TODO: transfer cost of r0 to contract
         // TODO: transfer amount_out to sender
 
         self.update(new_r0, new_r1);
+    }
+
+    pub fn get_balance(&self, owner: AccountId) -> U128 {
+        return self.token.get_balance(owner);
     }
 
     // getter functions

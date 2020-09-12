@@ -1,1 +1,1 @@
-cargo test -p nearyswap
+cargo test -p nearyswap -- --nocapture

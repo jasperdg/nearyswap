@@ -22,6 +22,10 @@ mod tests {
         "carol.near".to_string()
     }
 
+    fn min_liq() -> u128 {
+        return 1000;
+    }
+
     fn get_context(predecessor_account_id: String) -> VMContext {
         VMContext {
             current_account_id: alice(),
